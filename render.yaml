@@ -1,0 +1,27 @@
+# Blueprint Render dla backendu Kwiatownika (darmowy plan).
+# Render -> New -> Blueprint -> wybierz repozytorium KwiatownikBackend -> Apply.
+# Po utworzeniu: w Environment skopiuj wartosc SIEDZIBA_TOKEN do .env Siedziby (BACKEND_TOKEN),
+# a adres uslugi (np. https://kwiatownik-backend.onrender.com) do BACKEND_URL w .env Siedziby
+# i KW_BACKEND_URL w ustawieniach strony statycznej Kwiatownika.
+services:
+  - type: web
+    name: kwiatownik-backend
+    runtime: python
+    plan: free
+    region: frankfurt
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
+    healthCheckPath: /api/ping
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: SIEDZIBA_TOKEN            # haslo, ktorym Siedziba wysyla stan i odtwarza liczniki
+        generateValue: true
+      - key: ALLOWED_ORIGINS           # strony, ktore moga czytac /api/live i /api/stats/public
+        value: https://kwiatownik.onrender.com,http://localhost:5000,http://127.0.0.1:5000
+      - key: TZ_NAME
+        value: Europe/Warsaw
+      # Opcjonalnie trwala baza: DATABASE_URL = adres darmowego Postgresa (np. Neon). Dodaj recznie w panelu.
+      # Bez niej liczniki sa w SQLite, ktory znika przy restarcie/uspieniu - Siedziba odtwarza je sama.
