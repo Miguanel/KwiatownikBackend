@@ -6,7 +6,8 @@ Strona Kwiatownika jest statyczna, wiec wszystko, co wymaga pamieci, robi ten ma
   - /api/ping - przegladarka pyta co 10 min, gdy ktos klika po Kwiatowniku (darmowy Render usypia po 15 min),
   - przechowuje stan Siedziby i jej dziennik na zywo (papirus na stronie glownej),
   - Siedziba (lokalnie) wysyla heartbeat, pobiera liczniki do swojej bazy i - gdy serwer zgubil dane
-    po restarcie - odtwarza je (restore).
+    po restarcie - odtwarza je (restore),
+  - /admin - panel admina (haslo ADMIN_PASSWORD): statystyki, stan Siedziby, dziennik, eksport CSV.
 """
 import hashlib
 import json
@@ -127,7 +128,7 @@ def require_siedziba(request: Request) -> None:
 # ------------------------------------------------------------------ przegladarka
 @app.get("/")
 def root():
-    return {"app": "Kwiatownik Backend", "ok": True, "docs": "/docs"}
+    return {"app": "Kwiatownik Backend", "ok": True, "docs": "/docs", "admin": "/admin"}
 
 
 @app.api_route("/api/ping", methods=["GET", "HEAD"])
@@ -240,3 +241,9 @@ async def restore(request: Request):
     db.set_state("boot", {"boot": BOOT_ID, "restored": True})
     _cache.clear()
     return {"ok": True, "wiersze": n}
+
+
+# ------------------------------------------------------------------ panel admina (/admin)
+from app.admin import router as admin_router  # noqa: E402  (na koncu - admin korzysta z tego modulu)
+
+app.include_router(admin_router)

@@ -3,6 +3,7 @@
 # Po utworzeniu: w Environment skopiuj wartosc SIEDZIBA_TOKEN do .env Siedziby (BACKEND_TOKEN),
 # a adres uslugi (np. https://kwiatownik-backend.onrender.com) do BACKEND_URL w .env Siedziby
 # i KW_BACKEND_URL w ustawieniach strony statycznej Kwiatownika.
+# Panel admina: https://<adres-uslugi>/admin - haslo to wartosc ADMIN_PASSWORD (Environment -> pokaz wartosc).
 services:
   - type: web
     name: kwiatownik-backend
@@ -18,6 +19,10 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.9
       - key: SIEDZIBA_TOKEN            # haslo, ktorym Siedziba wysyla stan i odtwarza liczniki
+        generateValue: true
+      - key: ADMIN_PASSWORD            # haslo do panelu /admin (mozesz zmienic na wlasne; zmiana wylogowuje)
+        generateValue: true
+      - key: SESSION_SECRET            # klucz podpisu ciasteczka sesji panelu (nie trzeba go znac)
         generateValue: true
       - key: ALLOWED_ORIGINS           # strony, ktore moga czytac /api/live i /api/stats/public
         value: https://kwiatownik.onrender.com,http://localhost:5000,http://127.0.0.1:5000

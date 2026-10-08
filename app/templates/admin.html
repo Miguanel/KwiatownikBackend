@@ -1,0 +1,345 @@
+{% extends "admin_base.html" %}
+{% block title %}Pulpit{% endblock %}
+{% block head %}
+<style>
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  margin-bottom: 16px; }
+.top .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.top form { margin: 0; }
+.filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 16px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+  background: var(--surface); }
+.seg a { padding: 7px 14px; min-height: 36px; text-decoration: none; color: var(--ink-2); font-size: .9rem;
+  border-right: 1px solid var(--line); }
+.seg a:last-child { border-right: 0; }
+.seg a[aria-current="true"] { background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+.grid { display: grid; gap: 12px; }
+.status { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-bottom: 16px; }
+.status h2 { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; font-size: .9rem; }
+.kv dt { color: var(--ink-3); }
+.kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.note { margin: 10px 0 0; font-size: .85rem; padding: 8px 10px; border-radius: 8px;
+  background: var(--warn-bg); color: var(--warn); }
+.tiles { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 16px; }
+.tile { display: block; text-decoration: none; color: inherit; padding: 14px; }
+.tile:hover { border-color: var(--ink-3); }
+.tile[aria-current="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.tile .name { font-size: .85rem; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.caption { margin: 0 0 8px; }
+.tile .big { font-size: 1.75rem; font-weight: 650; line-height: 1.2; margin: 4px 0 2px; }
+.tile .sub { font-size: .8rem; color: var(--ink-3); }
+.tile .chg { font-size: .8rem; color: var(--ink-2); }
+.chart-card { margin-bottom: 16px; }
+.chart-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; margin-bottom: 8px; }
+.chart-head p { margin: 2px 0 0; }
+#chart { position: relative; width: 100%; min-height: 200px; }
+#chart svg { display: block; width: 100%; overflow: visible; }
+#chart .tick { fill: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+#chart .gridline { stroke: var(--grid); stroke-width: 1; }
+#chart .base { stroke: var(--line); stroke-width: 1; }
+#chart .bar { fill: var(--accent); transition: opacity .12s; }
+#chart.hovering .bar { opacity: .45; }
+#chart.hovering .bar.on { opacity: 1; }
+#chart .hit { fill: transparent; cursor: default; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--surface);
+  padding: 6px 10px; border-radius: 8px; font-size: .8rem; white-space: nowrap; transform: translate(-50%, -100%);
+  opacity: 0; transition: opacity .1s; z-index: 2; }
+.tip.on { opacity: 1; }
+.tip b { font-variant-numeric: tabular-nums; }
+details.table { margin-top: 10px; font-size: .85rem; }
+details.table summary { cursor: pointer; color: var(--ink-2); }
+details.table table { border-collapse: collapse; margin-top: 8px; }
+details.table td, details.table th { padding: 2px 14px 2px 0; text-align: left; }
+details.table td.num { text-align: right; }
+.tops { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); margin-bottom: 16px; }
+.tops h3 { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.tops ol { list-style: none; margin: 0; padding: 0; }
+.tops li { display: grid; grid-template-columns: minmax(0, 1fr) 72px 44px; align-items: center; gap: 10px;
+  padding: 4px 0; font-size: .88rem; }
+.tops .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tops .track { height: 6px; }
+.tops .fill { height: 6px; min-width: 2px; background: var(--accent); border-radius: 0 3px 3px 0; }
+.tops .n { text-align: right; }
+.empty { color: var(--ink-3); font-size: .88rem; margin: 0; }
+.log h2 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.log ul { list-style: none; margin: 0; padding: 0; }
+.log li { display: grid; grid-template-columns: 150px 96px minmax(0, 1fr) auto; gap: 12px; align-items: start;
+  padding: 10px 0; border-top: 1px solid var(--grid); font-size: .9rem; }
+.log li:first-child { border-top: 0; }
+.log .when { color: var(--ink-3); font-size: .82rem; font-variant-numeric: tabular-nums; }
+.log .kind { background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); font-weight: 500;
+  justify-self: start; }
+.log .text { overflow-wrap: anywhere; }
+.log .meta { font-size: .8rem; color: var(--ink-3); margin-top: 2px; }
+.log form { margin: 0; }
+.log .del { min-height: 30px; padding: 2px 10px; font-size: .8rem; color: var(--ink-2); }
+footer { color: var(--ink-3); font-size: .8rem; margin: 20px 0 8px; }
+@media (max-width: 640px) {
+  .wrap { padding: 12px; }
+  .tile .big { font-size: 1.45rem; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tiles .tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .log li { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; }
+  .log .when { grid-column: 1; }
+  .log .kind { grid-column: 2; grid-row: 1; justify-self: end; }
+  .log .text { grid-column: 1 / -1; }
+  .log form { grid-column: 1 / -1; }
+  .kv { grid-template-columns: 1fr; gap: 0; }
+  .kv dd { margin-bottom: 6px; }
+}
+</style>
+{% endblock %}
+{% block body %}
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>🌿 Kwiatownik · panel admina</h1>
+      <div class="muted small">stan na {{ server.now }} ({{ server.tz }})</div>
+    </div>
+    <div class="actions">
+      <a class="btn" href="{{ site_url }}" target="_blank" rel="noopener">Kwiatownik ↗</a>
+      <a class="btn" href="/admin/eksport.csv?dni={{ days }}">CSV {{ days }} dni</a>
+      <a class="btn" href="/admin/eksport.csv">CSV całość</a>
+      <form method="post" action="/admin/logout">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="btn" type="submit">Wyloguj</button>
+      </form>
+    </div>
+  </header>
+
+  <nav class="filters" aria-label="Okres">
+    <span class="muted small">Okres:</span>
+    <span class="seg">
+      {% for p in periods %}<a href="{{ link(dni=p) }}" aria-current="{{ 'true' if p == days else 'false' }}">{{ p }} dni</a>{% endfor %}
+    </span>
+    <a class="btn" href="{{ link() }}">Odśwież</a>
+  </nav>
+
+  <section class="grid status">
+    <div class="card">
+      <h2>Serwer
+        {% if server.sqlite and not server.restored %}<span class="pill warn">⚠ czeka na kopię z Siedziby</span>
+        {% else %}<span class="pill good">✓ działa</span>{% endif %}</h2>
+      <dl class="kv">
+        <dt>Działa od</dt><dd>{{ server.uptime }} <span class="muted">(start {{ server.boot }})</span></dd>
+        <dt>Baza</dt><dd>{{ server.db }}</dd>
+        <dt>Liczniki</dt><dd class="num">{{ server.liczniki|num }} wierszy{% if server.najstarszy_dzien %}, od {{ server.najstarszy_dzien }}{% endif %}</dd>
+        <dt>Dziennik</dt><dd class="num">{{ server.wpisy|num }} wpisów (trzymane ostatnie {{ server.live_keep }})</dd>
+        <dt>Odtworzenie</dt><dd>{{ 'liczniki odtworzone / zachowane po starcie' if server.restored else 'jeszcze nie – Siedziba wyśle kopię przy najbliższym połączeniu' }}</dd>
+      </dl>
+      {% if server.sqlite %}
+        <p class="note">SQLite na darmowym Render znika przy każdym restarcie i uśpieniu. Siedziba trzyma kopię liczników i odtwarza je sama. Trwała baza: ustaw <code>DATABASE_URL</code> (np. darmowy Neon).</p>
+      {% endif %}
+    </div>
+    <div class="card">
+      <h2>Siedziba
+        {% if siedziba.alive %}<span class="pill good">● pracuje</span>
+        {% else %}<span class="pill bad">○ milczy</span>{% endif %}</h2>
+      <dl class="kv">
+        <dt>Ostatni sygnał</dt><dd>{{ siedziba.ago }}{% if siedziba.when %} <span class="muted">({{ siedziba.when }})</span>{% endif %}</dd>
+        <dt>Status</dt><dd>{{ siedziba.status|status }}</dd>
+        <dt>Zadania</dt><dd>{{ siedziba.zadania|status }}</dd>
+        <dt>Informacja</dt><dd>{{ siedziba.info|status }}</dd>
+      </dl>
+      {% if not siedziba.alive %}
+        <p class="note">Brak sygnału od ponad {{ siedziba.alive_minutes }} min – Siedziba jest wyłączona albo nie ma połączenia (sprawdź <code>BACKEND_URL</code> i <code>BACKEND_TOKEN</code> w jej .env).</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <p class="muted small caption">Ostatnie {{ days }} dni · ▲▼ zmiana względem poprzednich {{ days }} dni · kliknij kafelek, by zobaczyć wykres</p>
+  <section class="grid tiles" aria-label="Liczniki">
+    {% for t in tiles %}
+      <a class="card tile" href="{{ link(m=t.kind) }}#wykres" aria-current="{{ 'true' if t.active else 'false' }}" title="{{ t.desc }}">
+        <div class="name">{{ t.name }}</div>
+        <div class="big num">{{ t.period|num }}</div>
+        <div class="chg num" title="poprzednie {{ days }} dni: {{ t.prev }}">
+          {% if t.change is none %}{% if t.period %}nowe w tym okresie{% else %}—{% endif %}
+          {% elif t.change > 0 %}▲ {{ t.change }}%
+          {% elif t.change < 0 %}▼ {{ -t.change }}%
+          {% else %}bez zmian{% endif %}
+        </div>
+        <div class="sub num">dziś {{ t.today|num }} · razem {{ t.total|num }}</div>
+      </a>
+    {% endfor %}
+  </section>
+
+  <section class="card chart-card" id="wykres">
+    <div class="chart-head">
+      <div>
+        <h2>{{ metric_name }} – dziennie, ostatnie {{ days }} dni</h2>
+        <p class="muted small">{{ metric_desc }}</p>
+      </div>
+      <div class="small num">razem <b>{{ series_sum|num }}</b> · średnio <b>{{ '%.1f'|format(series_sum / days) }}</b> / dzień</div>
+    </div>
+    <div id="chart" role="img" aria-label="{{ metric_name }}: wykres słupkowy dzienny, razem {{ series_sum }}"></div>
+    <details class="table">
+      <summary>Tabela</summary>
+      <table>
+        <thead><tr><th>Dzień</th><th>{{ metric_name }}</th></tr></thead>
+        <tbody>{% for p in series|reverse %}<tr><td>{{ p.d }}</td><td class="num">{{ p.n|num }}</td></tr>{% endfor %}</tbody>
+      </table>
+    </details>
+  </section>
+
+  <section class="grid tops" aria-label="Rankingi">
+    {% for t in tops %}
+      <div class="card">
+        <h3><span>{{ t.title }}</span><span class="muted small num">{{ t.sum|num }}</span></h3>
+        {% if t.rows %}
+          <ol>
+            {% for r in t.rows %}
+              <li><span class="lbl" title="{{ r.label }}">{{ r.label }}</span>
+                <span class="track" aria-hidden="true"><span class="fill" style="display:block;width:{{ r.pct }}%"></span></span>
+                <span class="n num">{{ r.n|num }}</span></li>
+            {% endfor %}
+          </ol>
+        {% else %}
+          <p class="empty">Brak danych w tym okresie.</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </section>
+
+  <section class="card log" id="dziennik">
+    <h2><span>Dziennik na żywo (papirus)</span><span class="muted small">ostatnie {{ entries|length }}</span></h2>
+    {% if entries %}
+      <ul>
+        {% for e in entries %}
+          <li>
+            <span class="when" title="{{ e.ago }}">{{ e.when }}</span>
+            <span class="pill kind">{{ e.kind_pl }}</span>
+            <div class="text">{{ e.text }}
+              {% if e.plant_id or e.url %}<div class="meta">
+                {% if e.plant_id %}roślina: {{ e.plant_id }}{% endif %}
+                {% if e.url %}{% if e.plant_id %} · {% endif %}<a href="{{ e.url if e.url.startswith('https://') else site_url ~ e.url }}" target="_blank" rel="noopener">link ↗</a>{% endif %}
+              </div>{% endif %}
+            </div>
+            <form method="post" action="/admin/wpis/{{ e.id }}/usun" class="js-del">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <input type="hidden" name="wroc" value="{{ link() }}#dziennik">
+              <button class="btn del" type="submit">Usuń</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="empty">Dziennik jest pusty – wpisy wysyła Siedziba razem z sygnałem życia.</p>
+    {% endif %}
+  </section>
+
+  <footer>Kwiatownik Backend · liczniki bez ciasteczek i bez adresów IP · <a href="/docs">API</a></footer>
+</div>
+
+<script type="application/json" id="series">{{ series|tojson }}</script>
+<script nonce="{{ nonce }}">
+(function () {
+  var data = JSON.parse(document.getElementById('series').textContent);
+  var unit = {{ metric_name|lower|tojson }};
+  var box = document.getElementById('chart');
+  var DOW = ['nd', 'pn', 'wt', 'śr', 'cz', 'pt', 'sb'];
+  var NS = 'http://www.w3.org/2000/svg';
+  var tip = document.createElement('div');
+  tip.className = 'tip';
+  box.appendChild(tip);
+
+  function el(name, attrs) {
+    var e = document.createElementNS(NS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  function niceStep(max, ticks) {
+    var raw = Math.max(1, max) / ticks, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p;
+    return Math.max(1, (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p);
+  }
+  function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f'); }
+  function dayLabel(d) { var p = d.split('-'); return +p[2] + '.' + p[1]; }
+  function longLabel(d) {
+    var p = d.split('-'), dt = new Date(+p[0], +p[1] - 1, +p[2]);
+    return DOW[dt.getDay()] + ' ' + p[2] + '.' + p[1] + '.' + p[0];
+  }
+  function barPath(x, y, w, h) {
+    if (h <= 0) return '';
+    var r = Math.min(4, w / 2, h), y0 = y + h;
+    return 'M' + x + ',' + y0 + 'V' + (y + r) + 'Q' + x + ',' + y + ' ' + (x + r) + ',' + y +
+      'H' + (x + w - r) + 'Q' + (x + w) + ',' + y + ' ' + (x + w) + ',' + (y + r) + 'V' + y0 + 'Z';
+  }
+
+  function render() {
+    var W = box.clientWidth, H = W < 520 ? 200 : 240;
+    var m = {l: 38, r: 6, t: 10, b: 24}, pw = W - m.l - m.r, ph = H - m.t - m.b;
+    var max = 0;
+    data.forEach(function (p) { if (p.n > max) max = p.n; });
+    var step = niceStep(max, H < 220 ? 3 : 4), top = Math.max(step, Math.ceil(max / step) * step);
+    var svg = el('svg', {width: W, height: H, viewBox: '0 0 ' + W + ' ' + H});
+    for (var v = 0; v <= top; v += step) {
+      var gy = m.t + ph - v / top * ph;
+      svg.appendChild(el('line', {x1: m.l, x2: W - m.r, y1: gy, y2: gy, 'class': v === 0 ? 'base' : 'gridline'}));
+      var t = el('text', {x: m.l - 8, y: gy + 4, 'text-anchor': 'end', 'class': 'tick'});
+      t.textContent = fmt(v);
+      svg.appendChild(t);
+    }
+    var band = pw / data.length, bw = Math.max(1.5, Math.min(18, band - 2));
+    var every = Math.max(1, Math.ceil(46 / band));
+    var bars = [];
+    data.forEach(function (p, i) {
+      var x = m.l + i * band + (band - bw) / 2, h = top ? p.n / top * ph : 0;
+      var bar = el('path', {d: barPath(x, m.t + ph - h, bw, h), 'class': 'bar'});
+      svg.appendChild(bar);
+      bars.push(bar);
+      var fromEnd = data.length - 1 - i;
+      if (fromEnd % every === 0 && (i >= every / 2 || fromEnd === 0)) {
+        var lt = el('text', {x: m.l + i * band + band / 2, y: H - 6, 'text-anchor': 'middle', 'class': 'tick'});
+        lt.textContent = dayLabel(p.d);
+        svg.appendChild(lt);
+      }
+    });
+    data.forEach(function (p, i) {
+      var hit = el('rect', {x: m.l + i * band, y: m.t, width: band, height: ph, 'class': 'hit'});
+      var cx = m.l + i * band + band / 2, h = top ? p.n / top * ph : 0;
+      function show() {
+        bars.forEach(function (b) { b.classList.remove('on'); });
+        bars[i].classList.add('on');
+        box.classList.add('hovering');
+        tip.innerHTML = '';
+        tip.appendChild(document.createTextNode(longLabel(p.d) + ' · '));
+        var b = document.createElement('b');
+        b.textContent = fmt(p.n);
+        tip.appendChild(b);
+        tip.appendChild(document.createTextNode(' ' + unit));
+        var left = Math.min(Math.max(cx, 80), W - 80);
+        tip.style.left = left + 'px';
+        tip.style.top = (m.t + ph - h - 8) + 'px';
+        tip.classList.add('on');
+      }
+      hit.addEventListener('pointerenter', show);
+      hit.addEventListener('pointerdown', show);
+      svg.appendChild(hit);
+    });
+    svg.addEventListener('pointerleave', function () {
+      tip.classList.remove('on');
+      box.classList.remove('hovering');
+      bars.forEach(function (b) { b.classList.remove('on'); });
+    });
+    var old = box.querySelector('svg');
+    if (old) box.removeChild(old);
+    box.insertBefore(svg, tip);
+  }
+
+  render();
+  var last = box.clientWidth;
+  if (window.ResizeObserver) {
+    new ResizeObserver(function () {
+      if (box.clientWidth !== last) { last = box.clientWidth; render(); }
+    }).observe(box);
+  }
+
+  document.querySelectorAll('form.js-del').forEach(function (f) {
+    f.addEventListener('submit', function (ev) {
+      if (!window.confirm('Usunąć ten wpis z dziennika na żywo? Zniknie też z papirusu na stronie.')) ev.preventDefault();
+    });
+  });
+})();
+</script>
+{% endblock %}

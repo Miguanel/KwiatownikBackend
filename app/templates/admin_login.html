@@ -1,0 +1,42 @@
+{% extends "admin_base.html" %}
+{% block title %}Logowanie{% endblock %}
+{% block head %}
+<style>
+.login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.login .card { width: 100%; max-width: 380px; padding: 24px; }
+.login h1 { margin-bottom: 4px; }
+.login label { display: block; font-size: .9rem; color: var(--ink-2); margin: 18px 0 6px; }
+.login input { width: 100%; min-height: 44px; padding: 8px 12px; font: inherit; color: var(--ink);
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; }
+.login .btn { width: 100%; justify-content: center; margin-top: 16px; min-height: 44px; }
+.msg { margin-top: 14px; padding: 10px 12px; border-radius: 8px; font-size: .9rem; }
+.msg.bad { background: var(--bad-bg); color: var(--bad); }
+.msg.warn { background: var(--warn-bg); color: var(--warn); }
+.leaf { font-size: 1.6rem; }
+</style>
+{% endblock %}
+{% block body %}
+<main class="login">
+  <div class="card">
+    <div class="leaf" aria-hidden="true">🌿</div>
+    <h1>Kwiatownik · panel admina</h1>
+    {% if disabled %}
+      <p class="muted">Panel jest wyłączony.</p>
+      <div class="msg warn">Ustaw zmienną <code>ADMIN_PASSWORD</code> w Render → Environment, aby go włączyć.</div>
+    {% else %}
+      <p class="muted small">Statystyki odwiedzin, stan Siedziby i dziennik na żywo.</p>
+      <form method="post" action="/admin/login" autocomplete="on">
+        <label for="haslo">Hasło</label>
+        <input id="haslo" name="haslo" type="password" autocomplete="current-password" required
+               {% if blocked %}disabled{% else %}autofocus{% endif %}>
+        <button class="btn primary" type="submit" {% if blocked %}disabled{% endif %}>Zaloguj</button>
+      </form>
+      {% if blocked %}
+        <div class="msg warn" role="alert">Za dużo nieudanych prób. Spróbuj ponownie za kwadrans.</div>
+      {% elif error %}
+        <div class="msg bad" role="alert">{{ error }}</div>
+      {% endif %}
+    {% endif %}
+  </div>
+</main>
+{% endblock %}

@@ -155,3 +155,47 @@ def recent_live(limit: int = 30) -> list[dict]:
             d.pop("id", None)
             out.append(d)
         return out
+
+
+# ------------------------------------------------------------------ panel admina
+def daily(kind: str, since: str) -> dict[str, int]:
+    """Suma dzienna jednego rodzaju zdarzen od dnia `since`: {RRRR-MM-DD: liczba}."""
+    q = (select(counters.c.day, func.sum(counters.c.n).label("n"))
+         .where(counters.c.kind == kind, counters.c.day >= since, counters.c.day != "archiwum")
+         .group_by(counters.c.day))
+    with engine.connect() as c:
+        return {r.day: int(r.n) for r in c.execute(q)}
+
+
+def all_rows(since: str | None = None) -> list[dict]:
+    """Wszystkie liczniki (z archiwum, gdy bez `since`) - do eksportu CSV."""
+    q = select(counters).order_by(counters.c.day, counters.c.kind, counters.c.key)
+    if since:
+        q = q.where(counters.c.day >= since, counters.c.day != "archiwum")
+    with engine.connect() as c:
+        return [dict(r._mapping) for r in c.execute(q)]
+
+
+def counts_overview() -> dict:
+    with engine.connect() as c:
+        return {"liczniki": int(c.execute(select(func.count()).select_from(counters)).scalar() or 0),
+                "wpisy": int(c.execute(select(func.count()).select_from(live)).scalar() or 0),
+                "najstarszy_dzien": c.execute(select(func.min(counters.c.day))
+                                              .where(counters.c.day != "archiwum")).scalar()}
+
+
+def live_admin(limit: int = 100) -> list[dict]:
+    with engine.connect() as c:
+        res = c.execute(select(live).order_by(live.c.ts.desc(), live.c.id.desc()).limit(limit))
+        out = []
+        for r in res:
+            d = dict(r._mapping)
+            if d["ts"].tzinfo is None:
+                d["ts"] = d["ts"].replace(tzinfo=timezone.utc)
+            out.append(d)
+        return out
+
+
+def delete_live(entry_id: int) -> bool:
+    with engine.begin() as c:
+        return c.execute(delete(live).where(live.c.id == entry_id)).rowcount > 0

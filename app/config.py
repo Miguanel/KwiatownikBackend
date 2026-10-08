@@ -24,6 +24,12 @@ class Settings:
         self.alive_minutes = int(os.getenv("SIEDZIBA_ALIVE_MINUTES", "15"))  # Siedziba "zyje", gdy odezwala sie niedawno
         self.live_keep = int(os.getenv("LIVE_EVENTS_KEEP", "300"))      # ile wpisow dziennika na zywo trzymac
         self.timezone = os.getenv("TZ_NAME", "Europe/Warsaw")
+        # panel admina (/admin): bez ADMIN_PASSWORD panel jest wylaczony
+        self.admin_password = os.getenv("ADMIN_PASSWORD", "").strip()
+        # klucz podpisu ciasteczka sesji; bez niego losowy przy starcie (restart = ponowne logowanie)
+        self.session_secret = os.getenv("SESSION_SECRET", "").strip()
+        self.admin_session_days = int(os.getenv("ADMIN_SESSION_DAYS", "7"))
+        self.site_url = os.getenv("SITE_URL", "https://kwiatownik.onrender.com").rstrip("/")
 
 
 settings = Settings()

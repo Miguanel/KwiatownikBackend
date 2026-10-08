@@ -1,4 +1,5 @@
 fastapi>=0.115
 uvicorn[standard]>=0.30
 SQLAlchemy>=2.0
+Jinja2>=3.1                # szablony panelu admina
 psycopg[binary]>=3.2      # tylko gdy DATABASE_URL wskazuje Postgresa (np. darmowy Neon)
