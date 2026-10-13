@@ -8,7 +8,9 @@ Strona Kwiatownika jest statyczna, wiec wszystko, co wymaga pamieci, robi ten ma
   - Siedziba (lokalnie) wysyla heartbeat, pobiera liczniki do swojej bazy i - gdy serwer zgubil dane
     po restarcie - odtwarza je (restore),
   - /admin - panel admina (haslo ADMIN_PASSWORD): statystyki, stan Siedziby, dziennik, eksport CSV.
+Dane: SQLite (robocza) + opcjonalnie trwala kopia w Postgresie/Neon (DATABASE_URL) - app/persist.py.
 """
+import asyncio
 import hashlib
 import json
 import re
@@ -22,7 +24,7 @@ from zoneinfo import ZoneInfo
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from app import db
+from app import db, persist
 from app.config import settings
 
 BOOT_ID = secrets.token_hex(6)            # nowy przy kazdym starcie - Siedziba wie, ze trzeba odtworzyc liczniki
@@ -54,10 +56,15 @@ _cache: dict[str, tuple[float, dict]] = {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db.init_db()
-    # dane przetrwaly start (Postgres albo plik SQLite zostal) -> nie trzeba ich odtwarzac z Siedziby
-    survived = not settings.database_url.startswith("sqlite") or not db.counters_empty()
+    await asyncio.to_thread(persist.load)        # trwala kopia (Neon) -> SQLite; bez DATABASE_URL nic nie robi
+    # liczniki sa (z trwalej kopii albo plik SQLite zostal) -> nie trzeba ich odtwarzac z Siedziby
+    survived = not db.counters_empty()
     db.set_state("boot", {"boot": BOOT_ID, "restored": survived})
+    task = asyncio.create_task(persist.loop()) if persist.status["enabled"] else None
     yield
+    if task:
+        task.cancel()
+        await asyncio.to_thread(persist.flush)  # ostatni zapis przed zamknieciem (restart, uspienie, wdrozenie)
 
 
 app = FastAPI(title="Kwiatownik Backend", lifespan=lifespan, docs_url="/docs", redoc_url=None)

@@ -119,13 +119,18 @@ footer { color: var(--ink-3); font-size: .8rem; margin: 20px 0 8px; }
   <section class="grid status">
     <div class="card">
       <h2>Serwer
-        {% if server.sqlite and not server.restored %}<span class="pill warn">⚠ czeka na kopię z Siedziby</span>
+        {% if server.persist and (server.persist.error or not server.persist.loaded) %}<span class="pill warn">⚠ problem z trwałą kopią</span>
+        {% elif not server.restored %}<span class="pill warn">⚠ czeka na kopię z Siedziby</span>
         {% else %}<span class="pill good">✓ działa</span>{% endif %}</h2>
       <dl class="kv">
         <dt>Działa od</dt><dd>{{ server.uptime }} <span class="muted">(start {{ server.boot }})</span></dd>
         <dt>Baza</dt><dd>{{ server.db }}</dd>
         <dt>Liczniki</dt><dd class="num">{{ server.liczniki|num }} wierszy{% if server.najstarszy_dzien %}, od {{ server.najstarszy_dzien }}{% endif %}</dd>
         <dt>Dziennik</dt><dd class="num">{{ server.wpisy|num }} wpisów (trzymane ostatnie {{ server.live_keep }})</dd>
+        {% if server.persist %}
+        <dt>Trwała kopia</dt><dd>{% if server.persist.loaded %}przy starcie wczytano {{ server.persist.loaded_rows|num }} wierszy; ostatni zapis: {{ server.persist.last_ok or 'jeszcze nie w tym uruchomieniu' }}; czeka {{ server.persist.pending|num }} zmian{% else %}nie wczytano przy starcie – zapis wyłączony do restartu, liczniki odtwarza Siedziba{% endif %}</dd>
+        {% if server.persist.error %}<dt>Błąd kopii</dt><dd class="small">{{ server.persist.error }} <span class="muted">({{ server.persist.error_when }})</span></dd>{% endif %}
+        {% endif %}
         <dt>Odtworzenie</dt><dd>{{ 'liczniki odtworzone / zachowane po starcie' if server.restored else 'jeszcze nie – Siedziba wyśle kopię przy najbliższym połączeniu' }}</dd>
       </dl>
       {% if server.sqlite %}

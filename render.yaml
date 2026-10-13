@@ -28,5 +28,9 @@ services:
         value: https://kwiatownik.onrender.com,http://localhost:5000,http://127.0.0.1:5000
       - key: TZ_NAME
         value: Europe/Warsaw
-      # Opcjonalnie trwala baza: DATABASE_URL = adres darmowego Postgresa (np. Neon). Dodaj recznie w panelu.
-      # Bez niej liczniki sa w SQLite, ktory znika przy restarcie/uspieniu - Siedziba odtwarza je sama.
+      # Trwala baza (Neon): DATABASE_URL = adres z Neon -> Connect (Pooled connection). Wpisz recznie w panelu
+      # Render (Environment), NIE tutaj - w adresie jest haslo. sync: false = Blueprint zapyta o wartosc.
+      - key: DATABASE_URL
+        sync: false
+      - key: PERSIST_MINUTES           # co ile minut zapisywac zmiany do Neona (mniej = wiecej godzin obliczen Neona)
+        value: "30"

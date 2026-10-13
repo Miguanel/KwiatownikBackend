@@ -23,7 +23,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from app import db
+from app import db, persist
 from app.config import settings
 
 router = APIRouter(prefix="/admin", include_in_schema=False)
@@ -232,7 +232,21 @@ def dashboard_data(days: int, metric: str) -> dict:
     boot, _ = db.get_state("boot")
     now_utc = db.now()
     alive = bool(upd and now_utc - upd < timedelta(minutes=settings.alive_minutes))
-    sqlite = settings.database_url.startswith("sqlite")
+    ps = persist.status
+    sqlite = not ps["enabled"]                   # sam SQLite - ulotny na darmowym Render
+    if not ps["enabled"]:
+        db_label = "SQLite (ulotny)"
+    elif ps["loaded"]:
+        db_label = f"SQLite + trwała kopia w PostgreSQL ({persist.host()}), zapis co {settings.persist_minutes} min"
+    else:
+        db_label = f"SQLite – trwała kopia w PostgreSQL ({persist.host()}) NIEDOSTĘPNA przy starcie"
+    persist_info = None
+    if ps["enabled"]:
+        persist_info = {"loaded": ps["loaded"], "error": ps["error"],
+                        "error_when": ps["error_at"].astimezone(tz).strftime("%d.%m.%Y %H:%M") if ps["error_at"] else None,
+                        "last_ok": _ago(ps["last_ok"], now_utc) if ps["last_ok"] else None,
+                        "pending": db.pending_changes(), "loaded_rows": ps["loaded_rows"],
+                        "minutes": settings.persist_minutes}
     entries = []
     for e in db.live_admin(100):
         entries.append({**e, "kind_pl": KIND_PL.get(e["kind"], e["kind"]),
@@ -243,7 +257,7 @@ def dashboard_data(days: int, metric: str) -> dict:
         "metric_desc": METRICS[metric][1], "tiles": tiles, "series": series,
         "series_sum": sum(p["n"] for p in series), "tops": tops, "entries": entries,
         "server": {"boot": core.BOOT_ID, "uptime": _fmt_uptime(int(time.time() - core.STARTED)),
-                   "db": "SQLite (ulotny)" if sqlite else "PostgreSQL (trwały)", "sqlite": sqlite,
+                   "db": db_label, "sqlite": sqlite, "persist": persist_info,
                    "restored": bool((boot or {}).get("restored")), **db.counts_overview(),
                    "live_keep": settings.live_keep, "tz": settings.timezone,
                    "now": now_local.strftime("%d.%m.%Y %H:%M")},
