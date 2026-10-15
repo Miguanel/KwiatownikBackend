@@ -4,7 +4,7 @@ Strona Kwiatownika jest statyczna, wiec wszystko, co wymaga pamieci, robi ten ma
   - liczy klikniecia w rozpoznawanie roslin (plant.id) i inne zdarzenia (odslony roslin, otwierane rozdzialy,
     przepisy, klikniete zrodla, wyszukiwania) - bez ciasteczek i bez zapisywania adresow IP,
   - /api/ping - przegladarka pyta co 10 min, gdy ktos klika po Kwiatowniku (darmowy Render usypia po 15 min),
-  - przechowuje stan Siedziby i jej dziennik na zywo (papirus na stronie glownej),
+  - przechowuje stan Siedziby i jej dziennik na zywo (tylko do panelu admina - nic z tego nie jest publiczne),
   - Siedziba (lokalnie) wysyla heartbeat, pobiera liczniki do swojej bazy i - gdy serwer zgubil dane
     po restarcie - odtwarza je (restore),
   - /admin - panel admina (haslo ADMIN_PASSWORD): statystyki, stan Siedziby, dziennik, eksport CSV.
@@ -50,7 +50,7 @@ BOT_RE = re.compile(r"bot|crawl|spider|slurp|facebookexternalhit|preview|monitor
 _salt = {"day": "", "value": ""}
 _seen: set[str] = set()                    # dzisiejsi goscie (skroty z sola dnia - tylko w pamieci)
 _rate: dict[str, deque] = defaultdict(deque)
-_cache: dict[str, tuple[float, dict]] = {}
+_cache: dict[str, tuple[float, dict]] = {}       # bufor panelu admina (czyszczony przy nowych zdarzeniach)
 
 
 @asynccontextmanager
@@ -178,39 +178,9 @@ async def events(request: Request):
     return Response(status_code=204)
 
 
-def _cached(name: str, ttl: float, fn):
-    hit = _cache.get(name)
-    if hit and time.time() - hit[0] < ttl:
-        return hit[1]
-    value = fn()
-    _cache[name] = (time.time(), value)
-    return value
-
-
-@app.get("/api/stats/public")
-def stats_public():
-    """Liczby do papirusu na stronie glownej (bufor 60 s)."""
-    def build():
-        d, week = today(), days_ago(6)
-        return {
-            "dzis": d,
-            "plantid": {"razem": db.total("plantid_click"), "dzis": db.total("plantid_click", day=d)},
-            "rosliny_odslony": {"razem": db.total("plant_view"), "dzis": db.total("plant_view", day=d),
-                                "tydzien": db.total("plant_view", since=week)},
-            "goscie": {"dzis": db.total("visitors", day=d), "tydzien": db.total("visitors", since=week)},
-            "najczesciej_czytane": [{"id": k, "n": n} for k, n in db.top("plant_view", week, 6)],
-            "najczesciej_rozpoznawane": [{"nazwa": k, "n": n} for k, n in db.top("plantid_result", days_ago(29), 5)],
-        }
-    return _cached("public", 60, build)
-
-
-@app.get("/api/live")
-def live_state():
-    """Stan Siedziby (czy pracuje, nad czym) + dziennik na zywo - do papirusu."""
-    st, upd = db.get_state("siedziba")
-    alive = bool(upd and db.now() - upd < timedelta(minutes=settings.alive_minutes))
-    return {"siedziba": {"zyje": alive, "ostatnio": upd.isoformat() if upd else None, **(st or {})},
-            "wpisy": db.recent_live(30), "serwer": {"boot": BOOT_ID, "uptime_s": int(time.time() - STARTED)}}
+# Stan Siedziby, dziennik i statystyki NIE sa publiczne (dawne /api/live i /api/stats/public usuniete 2026-10-15):
+# widac je tylko w panelu admina (/admin, app/admin.py) i w Siedzibie (/site). Strona pokazuje jedynie kronike
+# aktualizacji z data/changelog.json.
 
 
 # ------------------------------------------------------------------ Siedziba (token)

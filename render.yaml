@@ -24,7 +24,7 @@ services:
         generateValue: true
       - key: SESSION_SECRET            # klucz podpisu ciasteczka sesji panelu (nie trzeba go znac)
         generateValue: true
-      - key: ALLOWED_ORIGINS           # strony, ktore moga czytac /api/live i /api/stats/public
+      - key: ALLOWED_ORIGINS           # strony, ktore moga wysylac zdarzenia i pingowac backend
         value: https://kwiatownik.onrender.com,http://localhost:5000,http://127.0.0.1:5000
       - key: TZ_NAME
         value: Europe/Warsaw

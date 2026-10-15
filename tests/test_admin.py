@@ -111,7 +111,7 @@ def test_delete_entry_requires_csrf_and_origin(client):
     r = client.post(f"/admin/wpis/{entry_id}/usun", content=f"csrf={csrf(client)}&wroc=https://zly.example",
                     headers=form, follow_redirects=False)
     assert r.status_code == 303 and r.headers["location"] == "/admin"
-    assert db.live_admin() == [] and client.get("/api/live").json()["wpisy"] == []
+    assert db.live_admin() == [] and db.recent_live(30) == []
 
 
 def test_export_csv(client):

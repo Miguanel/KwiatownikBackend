@@ -4,7 +4,7 @@ Mały serwer (FastAPI) dla statycznej strony [Kwiatownika](https://kwiatownik.on
 
 - **Liczniki** – kliknięcia „Rozpoznaj” (plant.id), odsłony roślin, otwierane rozdziały, przepisy, kliknięte źródła i wyszukiwania. Nie używa ciasteczek i nie zapisuje adresów IP: gość = skrót z solą zmienianą codziennie, trzymaną tylko w pamięci.
 - **Keep-alive** – `/api/ping`. Strona pyta co 10 min, gdy ktoś klika po Kwiatowniku, bo darmowy Render usypia usługę po 15 min bez ruchu. Przy życiu trzyma ją też heartbeat Siedziby co 5 min, gdy Siedziba działa.
-- **Papirus** – `/api/live` (czy Siedziba pracuje i nad czym, dziennik na żywo) oraz `/api/stats/public` (liczby).
+- Stan Siedziby, dziennik na żywo i statystyki **nie są publiczne** – tylko w panelu `/admin` (dawne `/api/live` i `/api/stats/public` usunięte 2026-10-15).
 - **Siedziba** (z tokenem): `/api/siedziba/heartbeat`, `/api/siedziba/counters?since=`, `/api/siedziba/restore`.
 - **Panel admina** – `/admin` (hasło `ADMIN_PASSWORD`).
 

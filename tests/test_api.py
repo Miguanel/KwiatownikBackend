@@ -61,13 +61,12 @@ def test_bots_bad_json_and_rate_limit(client):
     assert db.total("plantid_click") == 40                          # limit 50/h: trzecia paczka odrzucona
 
 
-def test_public_stats(client):
-    send(client, [{"k": "plantid_click"}, {"k": "plant_view", "v": "bez_czarny"}, {"k": "plant_view", "v": "bez_czarny"},
-                  {"k": "plant_view", "v": "lipa"}, {"k": "plantid_result", "v": "Sambucus nigra"}])
-    s = client.get("/api/stats/public").json()
-    assert s["plantid"] == {"razem": 1, "dzis": 1} and s["rosliny_odslony"]["dzis"] == 3
-    assert s["najczesciej_czytane"][0] == {"id": "bez_czarny", "n": 2}
-    assert s["najczesciej_rozpoznawane"] == [{"nazwa": "Sambucus nigra", "n": 1}] and s["goscie"]["dzis"] == 1
+def test_no_public_stats_or_live(client):
+    """Stan Siedziby i statystyki sa tylko w panelu admina - publiczne adresy nie istnieja."""
+    send(client, [{"k": "plantid_click"}, {"k": "plant_view", "v": "bez_czarny"}])
+    assert client.get("/api/stats/public").status_code == 404
+    assert client.get("/api/live").status_code == 404
+    assert db.total("plantid_click") == 1 and db.total("plant_view") == 1       # zdarzenia dalej sa liczone
 
 
 def test_siedziba_heartbeat_live_and_auth(client):
@@ -81,9 +80,9 @@ def test_siedziba_heartbeat_live_and_auth(client):
     r = client.post("/api/siedziba/heartbeat", json=body, headers=AUTH).json()
     assert r["dodano_wpisow"] == 2 and r["potrzebna_kopia"] is True and r["boot"] == main.BOOT_ID
     assert client.post("/api/siedziba/heartbeat", json=body, headers=AUTH).json()["dodano_wpisow"] == 0  # bez powtorek
-    live = client.get("/api/live").json()
-    assert live["siedziba"]["zyje"] and live["siedziba"]["status"] == "pracuje"
-    texts = {w["eid"]: w for w in live["wpisy"]}
+    st, _ = db.get_state("siedziba")
+    assert st["status"] == "pracuje"
+    texts = {w["eid"]: w for w in db.recent_live(30)}
     assert texts["job:1"]["url"] == "/plant/kasztanowiec/" and texts["job:2"]["url"] is None
 
 

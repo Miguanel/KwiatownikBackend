@@ -30,7 +30,7 @@ class Settings:
         # Bez DATABASE_URL: liczniki po restarcie odtwarza Siedziba (restore).
         self.persist_url = postgres_url(os.getenv("DATABASE_URL", ""))
         self.persist_minutes = max(1, int(os.getenv("PERSIST_MINUTES", "30")))
-        # strony, ktore moga czytac /api/live i /api/stats (CORS)
+        # strony, ktore moga wysylac zdarzenia i pingowac backend (CORS)
         self.allowed_origins = _list("ALLOWED_ORIGINS", "https://kwiatownik.onrender.com,http://localhost:5000,"
                                                        "http://127.0.0.1:5000,http://localhost:8000")
         self.siedziba_token = os.getenv("SIEDZIBA_TOKEN", "").strip()   # haslo Siedziby (Bearer)
